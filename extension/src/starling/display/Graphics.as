@@ -77,6 +77,22 @@ package starling.display
 			endFill();
         }
 		
+		public function dispose() : void
+		{	
+			while ( _container.numChildren > 0 )
+			{
+				var child:DisplayObject = _container.getChildAt( 0 );
+				child.dispose();
+				_container.removeChildAt( 0 );
+			}
+			
+			_penPosX = NaN;
+			_penPosY = NaN;
+			
+			disposeStroke();
+			disposeFill();
+		}
+		
 		////////////////////////////////////////
 		// Fill-style
 		////////////////////////////////////////
@@ -160,6 +176,23 @@ package starling.display
 			_currentFill = null;
 		}
 		
+		protected function disposeFill():void
+		{
+			_fillStyleSet 	= false;
+			_fillColor 		= NaN;
+			_fillAlpha 		= NaN;
+			_fillTexture 	= null;
+			_fillMaterial 	= null;
+			_fillMatrix 	= null;
+			
+			if ( _currentFill ) 
+			{
+				_currentFill.dispose();
+				_container.removeChild( _currentFill );
+			}
+			_currentFill = null;
+		}
+		
 		////////////////////////////////////////
 		// Stroke-style
 		////////////////////////////////////////
@@ -194,8 +227,8 @@ package starling.display
 			
 			_strokeStyleSet			= !isNaN(thickness) && thickness > 0 && material;
 			_strokeThickness		= thickness;
-			_strokeColor			= material.color;
-			_strokeAlpha			= material.alpha;
+			_strokeColor			= material != null ? material.color : 0xFFFFFF;
+			_strokeAlpha			= material != null ? material.alpha : 1;
 			_strokeTexture			= null;
 			_strokeMaterial			= material;
 		}
@@ -212,6 +245,23 @@ package starling.display
 			// If we started drawing with a stroke, but ended drawing
 			// before we did anything visible with it, dispose it here.
 			if ( _currentStroke && _currentStroke.numVertices < 2 )
+			{
+				_currentStroke.dispose();
+			}
+			
+			_currentStroke = null;
+		}
+		
+		protected function disposeStroke():void
+		{
+			_strokeStyleSet			= false;
+			_strokeThickness		= NaN;
+			_strokeColor			= NaN;
+			_strokeAlpha			= NaN;
+			_strokeTexture			= null;
+			_strokeMaterial			= null;
+			
+			if ( _currentStroke )
 			{
 				_currentStroke.dispose();
 			}
@@ -470,7 +520,7 @@ package starling.display
 				lineTo( x + width, y );
 				lineTo( x + width, y + height );
 				lineTo( x, y + height );
-				lineTo( x, y );
+				lineTo( x, y - (_strokeThickness * 0.5)); // adding this to solve upper left corner being misshapen. Issue https://github.com/StarlingGraphics/Starling-Extension-Graphics/issues/109
 				
 				_currentFill = storedFill;
 			}
